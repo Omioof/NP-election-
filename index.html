@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ผลการเลือกตั้งนักเรียน — Live</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ─── RESET ─── */
+*{margin:0;padding:0;box-sizing:border-box}
+
+/* ─── PASTEL THEME ─── */
+:root{
+  --sky:   #b8e0f7;
+  --sky2:  #d6eef9;
+  --sky3:  #eaf6fd;
+  --rose:  #f9c6d8;
+  --rose2: #fde0eb;
+  --rose3: #fff0f5;
+  --white: #ffffff;
+  --slate: #3b5270;
+  --slate2:#5a7a9a;
+  --muted: #9ab0c4;
+  --gold:  #f5c842;
+  --goldd: #e0a800;
+
+  --p1:    #e05c7a;   /* พรรค 1 — ชมพูเข้ม */
+  --p1l:   #fde8ef;
+  --p1b:   #f4b8c8;
+  --p2:    #3b9fd4;   /* พรรค 2 — ฟ้า */
+  --p2l:   #ddf0fb;
+  --p2b:   #9dd5f0;
+  --p3:    #e8972a;   /* พรรค 3 — ส้มทอง */
+  --p3l:   #fff3dc;
+  --p3b:   #f5d08a;
+}
+
+/* ─── BACKGROUND ─── */
+html,body{min-height:100vh}
+body{
+  font-family:'Sarabun',sans-serif;
+  background: linear-gradient(160deg, var(--sky3) 0%, var(--white) 40%, var(--rose3) 100%);
+  color:var(--slate);
+  overflow-x:hidden;
+}
+
+/* soft blobs */
+body::before,body::after{
+  content:'';position:fixed;border-radius:50%;pointer-events:none;z-index:0;
+}
+body::before{
+  width:700px;height:700px;top:-200px;left:-200px;
+  background:radial-gradient(circle,rgba(184,224,247,.5) 0%,transparent 70%);
+}
+body::after{
+  width:600px;height:600px;bottom:-150px;right:-150px;
+  background:radial-gradient(circle,rgba(249,198,216,.45) 0%,transparent 70%);
+}
+
+.wrap{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:28px 24px 60px}
+
+/* ─── HEADER ─── */
+.site-header{
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;
+  margin-bottom:32px;
+  background:rgba(255,255,255,.75);
+  backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.9);
+  border-radius:20px;
+  padding:20px 28px;
+  box-shadow:0 4px 30px rgba(59,82,112,.08);
+}
+
+.brand{display:flex;align-items:center;gap:14px}
+.brand-icon{
+  width:52px;height:52px;border-radius:14px;
+  background:linear-gradient(135deg,var(--p1),var(--p2));
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.5em;
+  box-shadow:0 4px 16px rgba(224,92,122,.25);
+  flex-shrink:0;
+}
+.brand h1{font-size:1.45em;font-weight:800;color:var(--slate);line-height:1.2}
+.brand p{font-size:.8em;color:var(--muted);margin-top:2px}
+
+.header-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+
+.live-pill{
+  display:flex;align-items:center;gap:7px;
+  background:rgba(224,92,122,.1);
+  border:1px solid rgba(224,92,122,.28);
+  padding:7px 16px;border-radius:99px;
+  font-size:.8em;font-weight:700;color:var(--p1);
+}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--p1);animation:blink 1.2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+.clock-box{text-align:right;line-height:1.5}
+.clock-time{font-family:'IBM Plex Mono',monospace;font-size:1.05em;font-weight:600;color:var(--slate)}
+.clock-date{font-size:.75em;color:var(--muted)}
+
+/* ─── PARTY LEGEND ─── */
+.legend{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:28px}
+.legend-chip{
+  display:flex;align-items:center;gap:7px;
+  padding:7px 16px;border-radius:99px;border:1.5px solid;
+  font-size:.83em;font-weight:600;
+  transition:transform .2s;cursor:default;
+  background:var(--white);
+}
+.legend-chip:hover{transform:translateY(-2px)}
+.lc1{border-color:var(--p1b);color:var(--p1)}.lc1 .ldot{background:var(--p1)}
+.lc2{border-color:var(--p2b);color:var(--p2)}.lc2 .ldot{background:var(--p2)}
+.lc3{border-color:var(--p3b);color:var(--p3)}.lc3 .ldot{background:var(--p3)}
+.ldot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+
+/* ─── SECTION LABEL ─── */
+.sec-row{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.sec-tag{
+  padding:5px 14px;border-radius:6px;font-size:.74em;font-weight:800;
+  letter-spacing:.05em;text-transform:uppercase;
+}
+.stag1{background:rgba(59,82,112,.1);color:var(--slate)}
+.stag2{background:var(--p3l);border:1px solid var(--p3b);color:var(--goldd);font-size:.72em}
+.sec-row h2{font-size:1.3em;font-weight:800;color:var(--slate)}
+.sec-meta{margin-left:auto;font-size:.78em;color:var(--muted);font-family:'IBM Plex Mono',monospace}
+
+/* ─── TOTAL BAR ─── */
+.total-bar{
+  display:flex;flex-wrap:wrap;gap:0;
+  background:var(--white);
+  border:1px solid rgba(59,82,112,.1);
+  border-radius:16px;overflow:hidden;
+  margin-bottom:22px;
+  box-shadow:0 4px 20px rgba(59,82,112,.06);
+}
+.total-cell{
+  flex:1;min-width:120px;padding:16px 20px;text-align:center;
+  border-right:1px solid rgba(59,82,112,.07);position:relative;
+}
+.total-cell:last-child{border-right:none}
+.tc-num{font-family:'IBM Plex Mono',monospace;font-size:1.9em;font-weight:600;line-height:1;margin-bottom:3px}
+.tc-lbl{font-size:.75em;color:var(--muted)}
+
+/* ─── PRESIDENT GRID ─── */
+.pres-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:18px;
+  margin-bottom:40px;
+}
+
+/* party group wrapper */
+.party-group{margin-bottom:24px}
+.party-group-head{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 18px;
+  border-radius:12px 12px 0 0;
+  font-weight:700;font-size:.88em;
+  border-bottom:none;
+}
+.pg1{background:var(--p1l);color:var(--p1);border:1.5px solid var(--p1b)}
+.pg2{background:var(--p2l);color:var(--p2);border:1.5px solid var(--p2b)}
+.pg3{background:var(--p3l);color:var(--p3);border:1.5px solid var(--p3b)}
+.party-group-body{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;
+  padding:16px;
+  background:rgba(255,255,255,.6);
+  border:1.5px solid rgba(59,82,112,.09);
+  border-top:none;border-radius:0 0 12px 12px;
+}
+
+/* candidate card */
+.cand-card{
+  background:var(--white);
+  border-radius:16px;
+  padding:22px 18px;
+  text-align:center;
+  border:1.5px solid rgba(59,82,112,.09);
+  box-shadow:0 4px 20px rgba(59,82,112,.07);
+  position:relative;overflow:hidden;
+  transition:transform .25s,box-shadow .25s;
+}
+.cand-card:hover{transform:translateY(-5px);box-shadow:0 10px 35px rgba(59,82,112,.13)}
+.cand-card.leader{border-color:var(--gold);box-shadow:0 4px 25px rgba(245,200,66,.25);}
+.cand-card.leader::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(160deg,rgba(255,248,220,.4) 0%,transparent 50%);
+  pointer-events:none;
+}
+
+/* top stripe */
+.card-stripe{height:4px;border-radius:99px;margin-bottom:16px}
+.cs1{background:linear-gradient(90deg,var(--p1),#f0a0b8)}
+.cs2{background:linear-gradient(90deg,var(--p2),#7fc8e8)}
+.cs3{background:linear-gradient(90deg,var(--p3),#f5d08a)}
+
+/* crown */
+.crown-badge{
+  position:absolute;top:12px;right:12px;
+  background:linear-gradient(135deg,var(--gold),#f5a623);
+  color:#fff;font-size:.68em;font-weight:800;
+  padding:4px 10px;border-radius:99px;
+  box-shadow:0 2px 10px rgba(245,200,66,.5);
+  animation:glow2 2s infinite;
+}
+@keyframes glow2{0%,100%{box-shadow:0 2px 10px rgba(245,200,66,.4)}50%{box-shadow:0 4px 20px rgba(245,200,66,.75)}}
+
+.cand-photo{
+  width:88px;height:88px;border-radius:50%;
+  object-fit:cover;margin:0 auto 14px;display:block;
+  border:3px solid;
+  transition:transform .25s;
+}
+.cand-card:hover .cand-photo{transform:scale(1.06)}
+.ph1{border-color:var(--p1b)}.ph2{border-color:var(--p2b)}.ph3{border-color:var(--p3b)}
+
+.cand-name{font-size:1em;font-weight:700;color:var(--slate);margin-bottom:3px;line-height:1.3}
+.cand-class{font-size:.77em;color:var(--muted);margin-bottom:14px}
+.cand-votes{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:2.8em;font-weight:600;
+  line-height:1;margin-bottom:2px;
+  transition:all .35s;
+}
+.cv1{color:var(--p1)}.cv2{color:var(--p2)}.cv3{color:var(--p3)}
+.cand-lbl{font-size:.72em;color:var(--muted);margin-bottom:12px}
+.cand-pct{
+  display:inline-block;font-size:.78em;font-weight:700;
+  padding:3px 10px;border-radius:99px;margin-bottom:10px;
+}
+.cp1{background:var(--p1l);color:var(--p1)}.cp2{background:var(--p2l);color:var(--p2)}.cp3{background:var(--p3l);color:var(--p3)}
+
+/* progress */
+.prog-track{height:8px;background:rgba(59,82,112,.08);border-radius:99px;overflow:hidden}
+.prog-fill{height:100%;border-radius:99px;transition:width .9s cubic-bezier(.4,0,.2,1);position:relative;overflow:hidden}
+.prog-fill::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.4),transparent);animation:sw 2s linear infinite}
+@keyframes sw{0%{transform:translateX(-100%)}100%{transform:translateX(200%)}}
+.pf1{background:linear-gradient(90deg,var(--p1),#f0a0b8)}
+.pf2{background:linear-gradient(90deg,var(--p2),#7fc8e8)}
+.pf3{background:linear-gradient(90deg,var(--p3),#f5d08a)}
+.pct-row{display:flex;justify-content:space-between;margin-top:5px;font-size:.7em;color:var(--muted);font-family:'IBM Plex Mono',monospace}
+
+/* ─── GRADE SECTION ─── */
+.grades-wrap{margin-bottom:40px}
+.grade-block{
+  background:var(--white);
+  border:1.5px solid rgba(59,82,112,.09);
+  border-radius:16px;overflow:hidden;
+  margin-bottom:14px;
+  box-shadow:0 3px 16px rgba(59,82,112,.06);
+  transition:box-shadow .2s;
+}
+.grade-block:hover{box-shadow:0 6px 24px rgba(59,82,112,.1)}
+
+.grade-head{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 20px;
+  background:linear-gradient(90deg,rgba(184,224,247,.3),rgba(249,198,216,.2));
+  border-bottom:1px solid rgba(59,82,112,.07);
+  cursor:pointer;user-select:none;
+}
+.grade-pill{
+  background:linear-gradient(135deg,var(--sky),var(--rose));
+  color:var(--slate);font-size:.83em;font-weight:800;
+  padding:4px 14px;border-radius:99px;
+  box-shadow:0 2px 8px rgba(59,82,112,.1);
+  flex-shrink:0;
+}
+.grade-head h3{font-size:.95em;font-weight:700;color:var(--slate)}
+.grade-total{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:.82em;color:var(--muted)}
+.grade-arrow{color:var(--muted);font-size:.75em;transition:transform .3s;margin-left:8px}
+.grade-block.open .grade-arrow{transform:rotate(180deg)}
+
+.grade-body{padding:16px 20px}
+.grade-body.hidden{display:none}
+
+/* rep row */
+.rep-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.rep-card{
+  background:rgba(255,255,255,.8);
+  border:1.5px solid rgba(59,82,112,.09);
+  border-radius:12px;padding:14px 16px;
+  position:relative;transition:transform .2s;
+}
+.rep-card:hover{transform:translateY(-3px)}
+.rep-card.rep-lead{
+  border-color:var(--gold);
+  background:linear-gradient(160deg,rgba(255,248,220,.5),var(--white));
+}
+
+.rep-stripe{height:3px;border-radius:99px;margin-bottom:10px}
+.rs1{background:linear-gradient(90deg,var(--p1),#f0a0b8)}
+.rs2{background:linear-gradient(90deg,var(--p2),#7fc8e8)}
+.rs3{background:linear-gradient(90deg,var(--p3),#f5d08a)}
+
+.rep-name{font-size:.88em;font-weight:700;color:var(--slate);margin-bottom:2px}
+.rep-sub{font-size:.74em;color:var(--muted);margin-bottom:9px}
+.rep-votes{font-family:'IBM Plex Mono',monospace;font-size:1.45em;font-weight:600;margin-bottom:2px}
+.rv1{color:var(--p1)}.rv2{color:var(--p2)}.rv3{color:var(--p3)}
+.rep-lbl{font-size:.7em;color:var(--muted);margin-bottom:8px}
+.mini-track{height:5px;background:rgba(59,82,112,.08);border-radius:99px;overflow:hidden}
+.mini-fill{height:100%;border-radius:99px;transition:width .7s ease}
+.mf1{background:var(--p1)}.mf2{background:var(--p2)}.mf3{background:var(--p3)}
+.mini-crown{
+  position:absolute;top:8px;right:10px;
+  font-size:.68em;font-weight:800;
+  background:rgba(245,200,66,.18);color:var(--goldd);
+  padding:2px 8px;border-radius:99px;
+}
+
+/* ─── FOOTER ─── */
+.site-footer{
+  text-align:center;padding:24px 0 0;
+  border-top:1px solid rgba(59,82,112,.09);
+  color:var(--muted);font-size:.78em;
+}
+
+/* ─── EMPTY STATE ─── */
+.empty-state{
+  text-align:center;padding:40px;color:var(--muted);
+  background:rgba(255,255,255,.6);border-radius:14px;
+  border:1.5px dashed rgba(59,82,112,.12);
+}
+
+/* ─── BUMP ANIM ─── */
+@keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.18)}100%{transform:scale(1)}}
+.bumped{animation:bump .4s ease}
+
+/* ─── RESPONSIVE ─── */
+@media(max-width:768px){
+  .wrap{padding:14px 12px 40px}
+  .site-header{padding:14px 16px}
+  .brand h1{font-size:1.1em}
+  .rep-row{grid-template-columns:1fr}
+  .total-bar{flex-direction:column}
+  .total-cell{border-right:none;border-bottom:1px solid rgba(59,82,112,.07)}
+  .total-cell:last-child{border-bottom:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <header class="site-header">
+    <div class="brand">
+      <div class="brand-icon">🗳️</div>
+      <div>
+        <h1 id="schoolName">ผลการเลือกตั้งนักเรียน</h1>
+        <p id="schoolSub">กำลังโหลดข้อมูล...</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="live-pill"><div class="live-dot"></div>LIVE</div>
+      <div class="clock-box">
+        <div class="clock-time" id="clockTime">--:--:--</div>
+        <div class="clock-date" id="clockDate">-- --- ----</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- PARTY LEGEND -->
+  <div class="legend" id="legendRow"></div>
+
+  <!-- ══════ BALLOT 1 ══════ -->
+  <div class="sec-row">
+    <div class="sec-tag stag1">บัตรใบที่ 1</div>
+    <h2>ประธานนักเรียน</h2>
+    <div class="sec-meta" id="b1Meta">— คะแนน</div>
+  </div>
+
+  <!-- totals -->
+  <div class="total-bar" id="b1TotalBar"></div>
+
+  <!-- cards by party -->
+  <div id="b1Container"></div>
+
+  <!-- ══════ BALLOT 2 ══════ -->
+  <div class="sec-row" style="margin-top:40px">
+    <div class="sec-tag stag2">บัตรใบที่ 2</div>
+    <h2>ผู้แทนนักเรียนประจำชั้น</h2>
+    <div class="sec-meta" id="b2Meta">— คะแนน</div>
+  </div>
+
+  <div class="grades-wrap" id="b2Container"></div>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <p>ระบบแสดงผลการเลือกตั้งนักเรียน · อัปเดตทุก 3 วินาที · <span id="lastUpdate">—</span></p>
+  </footer>
+
+</div><!-- /wrap -->
+
+<script>
+// ════════════════════════════════════════════
+// CONSTANTS (match admin system)
+// ════════════════════════════════════════════
+const PARTIES=[
+  {id:1,name:'ก้าวหน้า',color:'#e05c7a',
+   cs:'cs1',pf:'pf1',cv:'cv1',cp:'cp1',lc:'lc1',rs:'rs1',rv:'rv1',mf:'mf1',ph:'ph1',pgHead:'pg1'},
+  {id:2,name:'พัฒนา',  color:'#3b9fd4',
+   cs:'cs2',pf:'pf2',cv:'cv2',cp:'cp2',lc:'lc2',rs:'rs2',rv:'rv2',mf:'mf2',ph:'ph2',pgHead:'pg2'},
+  {id:3,name:'รวมพลัง',color:'#e8972a',
+   cs:'cs3',pf:'pf3',cv:'cv3',cp:'cp3',lc:'lc3',rs:'rs3',rv:'rv3',mf:'mf3',ph:'ph3',pgHead:'pg3'},
+];
+const GRADES=['ม.1','ม.2','ม.3','ม.4','ม.5','ม.6'];
+
+// ════════════════════════════════════════════
+// CLOCK
+// ════════════════════════════════════════════
+function tick(){
+  const n=new Date();
+  document.getElementById('clockTime').textContent=n.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  document.getElementById('clockDate').textContent=n.toLocaleDateString('th-TH',{day:'2-digit',month:'long',year:'numeric'});
+}
+setInterval(tick,1000);tick();
+
+// ════════════════════════════════════════════
+// DATA
+// ════════════════════════════════════════════
+let prevPres={};
+function loadData(){
+  try{
+    const raw=localStorage.getItem('elV3');
+    if(raw)return JSON.parse(raw);
+  }catch(e){}
+  return null;
+}
+
+function p(id){return PARTIES[id-1]}
+
+// ════════════════════════════════════════════
+// RENDER LEGEND
+// ════════════════════════════════════════════
+function renderLegend(partyNames){
+  document.getElementById('legendRow').innerHTML=PARTIES.map((p,i)=>`
+    <div class="legend-chip ${p.lc}">
+      <div class="ldot"></div>
+      พรรคที่ ${p.id} — ${partyNames?partyNames[i]:p.name}
+    </div>`).join('');
+}
+
+// ════════════════════════════════════════════
+// BALLOT 1 — PRESIDENTS
+// ════════════════════════════════════════════
+function renderB1(presidents,partyNames){
+  if(!presidents||!presidents.length){
+    document.getElementById('b1Container').innerHTML='<div class="empty-state">⏳ ยังไม่มีข้อมูลผู้สมัคร</div>';
+    return;
+  }
+  const total=presidents.reduce((s,c)=>s+c.votes,0);
+  const maxV=Math.max(...presidents.map(c=>c.votes),1);
+  const leaderIdx=presidents.reduce((mi,c,i,a)=>c.votes>a[mi].votes?i:mi,0);
+
+  // total bar
+  const byParty=PARTIES.map((p,i)=>({...p,name:partyNames?partyNames[i]:p.name,total:presidents.filter(c=>c.partyId===p.id).reduce((s,c)=>s+c.votes,0)}));
+  document.getElementById('b1TotalBar').innerHTML=
+    byParty.map(p=>`<div class="total-cell"><div class="tc-num" style="color:${p.color}">${p.total.toLocaleString()}</div><div class="tc-lbl">พรรค${p.name}</div></div>`).join('')+
+    `<div class="total-cell"><div class="tc-num" style="color:var(--slate)">${total.toLocaleString()}</div><div class="tc-lbl">รวมทั้งหมด</div></div>`;
+  document.getElementById('b1Meta').textContent=total.toLocaleString()+' คะแนน';
+
+  // group by party
+  document.getElementById('b1Container').innerHTML=byParty.map(partyInfo=>{
+    const cands=presidents.filter(c=>c.partyId===partyInfo.id);
+    if(!cands.length)return'';
+    const pObj=PARTIES[partyInfo.id-1];
+    const cards=cands.map((c,ci)=>{
+      const isLeader=presidents.indexOf(c)===leaderIdx&&c.votes>0;
+      const pct=total>0?((c.votes/total)*100).toFixed(1):'0.0';
+      const barW=((c.votes/maxV)*100).toFixed(1);
+      const bump=prevPres[c.id]!==undefined&&prevPres[c.id]<c.votes?'bumped':'';
+      return `
+        <div class="cand-card ${isLeader?'leader':''}">
+          ${isLeader?'<div class="crown-badge">👑 นำคะแนน</div>':''}
+          <div class="card-stripe ${pObj.cs}"></div>
+          <img src="${c.photo||`https://api.dicebear.com/7.x/avataaars/svg?seed=${c.id}`}"
+               class="cand-photo ${pObj.ph}" alt="${c.name}"
+               onerror="this.src='https://api.dicebear.com/7.x/avataaars/svg?seed=${c.id}'">
+          <div class="cand-name">${c.name}</div>
+          <div class="cand-class">${c.class}</div>
+          <div class="cand-votes ${pObj.cv} ${bump}" id="cv-${c.id}">${c.votes.toLocaleString()}</div>
+          <div class="cand-lbl">คะแนนเสียง</div>
+          <div class="cand-pct ${pObj.cp}">${pct}%</div>
+          <div class="prog-track"><div class="prog-fill ${pObj.pf}" style="width:${barW}%"></div></div>
+          <div class="pct-row"><span>${c.votes}/${total}</span><span>${pct}%</span></div>
+        </div>`;
+    }).join('');
+    return `
+      <div class="party-group">
+        <div class="party-group-head ${pObj.pgHead}">
+          <div class="ldot" style="background:${partyInfo.color}"></div>
+          พรรค${partyInfo.name}
+          <span style="font-weight:400;font-size:.9em;margin-left:6px;opacity:.7">${cands.length} ผู้สมัคร · ${partyInfo.total} คะแนน</span>
+        </div>
+        <div class="party-group-body">${cards}</div>
+      </div>`;
+  }).join('');
+
+  // save for bump detection
+  presidents.forEach(c=>prevPres[c.id]=c.votes);
+}
+
+// ════════════════════════════════════════════
+// BALLOT 2 — GRADE REPS
+// ════════════════════════════════════════════
+function renderB2(reps,partyNames){
+  if(!reps){document.getElementById('b2Container').innerHTML='<div class="empty-state">⏳ ยังไม่มีข้อมูลผู้แทน</div>';return;}
+
+  const totalAll=GRADES.reduce((s,g)=>{const arr=reps[g]||[];return s+arr.reduce((a,r)=>a+r.votes,0);},0);
+  document.getElementById('b2Meta').textContent=totalAll.toLocaleString()+' คะแนน';
+
+  document.getElementById('b2Container').innerHTML=GRADES.map(g=>{
+    const grReps=reps[g]||[];
+    const grTotal=grReps.reduce((s,r)=>s+r.votes,0);
+    const maxVG=Math.max(...grReps.map(r=>r.votes),1);
+    const byPartyRep=PARTIES.map((p,i)=>({...p,name:partyNames?partyNames[i]:p.name,reps:grReps.filter(r=>r.partyId===p.id)}));
+    const leaderR=grReps.length?grReps.reduce((a,b)=>a.votes>b.votes?a:b,grReps[0]):null;
+
+    const repCards=byPartyRep.map(partyInfo=>{
+      const pObj=PARTIES[partyInfo.id-1];
+      return partyInfo.reps.map(r=>{
+        const isLead=leaderR&&r.id===leaderR.id&&r.votes>0;
+        const barW=((r.votes/maxVG)*100).toFixed(1);
+        const pct=grTotal>0?((r.votes/grTotal)*100).toFixed(1):'0.0';
+        return `
+          <div class="rep-card ${isLead?'rep-lead':''}">
+            ${isLead?'<div class="mini-crown">👑 นำ</div>':''}
+            <div class="rep-stripe ${pObj.rs}"></div>
+            <div class="rep-name">${r.name}</div>
+            <div class="rep-sub">พรรค${partyInfo.name} · ${r.class}</div>
+            <div class="rep-votes ${pObj.rv}">${r.votes.toLocaleString()}</div>
+            <div class="rep-lbl">คะแนน (${pct}%)</div>
+            <div class="mini-track"><div class="mini-fill ${pObj.mf}" style="width:${barW}%"></div></div>
+          </div>`;
+      }).join('');
+    }).join('');
+
+    return `
+      <div class="grade-block open">
+        <div class="grade-head" onclick="toggleGrade(this)">
+          <div class="grade-pill">${g}</div>
+          <h3>ผู้แทนนักเรียนชั้น ${g}</h3>
+          <div class="grade-total">${grTotal.toLocaleString()} คะแนน</div>
+          <div class="grade-arrow">▼</div>
+        </div>
+        <div class="grade-body">
+          <div class="rep-row">${repCards||'<p style="color:var(--muted);font-size:.85em">ยังไม่มีผู้แทนในชั้นนี้</p>'}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════
+// TOGGLE GRADE
+// ════════════════════════════════════════════
+function toggleGrade(head){
+  const block=head.closest('.grade-block');
+  block.classList.toggle('open');
+  block.querySelector('.grade-body').classList.toggle('hidden');
+}
+
+// ════════════════════════════════════════════
+// MAIN REFRESH
+// ════════════════════════════════════════════
+function refresh(){
+  const d=loadData();
+  if(!d){
+    document.getElementById('schoolSub').textContent='ยังไม่มีข้อมูล — รอระบบ Admin เริ่มต้น';
+    return;
+  }
+  document.getElementById('schoolName').textContent='ผลการเลือกตั้งนักเรียน';
+  document.getElementById('schoolSub').textContent=('โรงเรียนนาคประสิทธิ์ มูลนิธิวัดบางช้างเหนือ')+' · ปีการศึกษา 2569';
+  renderLegend(d.partyNames);
+  renderB1(d.presidents,d.partyNames);
+  renderB2(d.reps,d.partyNames);
+  document.getElementById('lastUpdate').textContent=new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+refresh();
+setInterval(refresh,3000);
+</script>
+</body>
+</html>

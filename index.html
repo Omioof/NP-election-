@@ -408,7 +408,12 @@ const PARTIES=[
   {id:3,name:'รวมพลัง',color:'#e8972a',
    cs:'cs3',pf:'pf3',cv:'cv3',cp:'cp3',lc:'lc3',rs:'rs3',rv:'rv3',mf:'mf3',ph:'ph3',pgHead:'pg3'},
 ];
-const GRADES=['ม.1','ม.2','ม.3','ม.4','ม.5','ม.6'];
+const GRADES=['ม1','ม2','ม3','ม4','ม5','ม6'];
+
+// Convert internal grade key (ม1) to display label (ม.1)
+function gradeDisplay(g){ return g.replace(/^ม(\d)$/,'ม.$1'); }
+// Convert display label back to key
+function gradeKey(g){ return g.replace(/^ม\.(\d)$/,'ม$1'); }
 
 
 // ════════════════════════════════════════════
@@ -596,8 +601,8 @@ function renderB2(reps,partyNames){
     return `
       <div class="grade-block open">
         <div class="grade-head" onclick="toggleGrade(this)">
-          <div class="grade-pill">${g}</div>
-          <h3>ผู้แทนนักเรียนชั้น ${g}</h3>
+          <div class="grade-pill">${gradeDisplay(g)}</div>
+          <h3>ผู้แทนนักเรียนชั้น ${gradeDisplay(g)}</h3>
           <div class="grade-total">${grTotal.toLocaleString()} คะแนน</div>
           <div class="grade-arrow">▼</div>
         </div>

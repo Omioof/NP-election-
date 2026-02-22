@@ -382,7 +382,7 @@ body::before{content:'';position:fixed;inset:0;
         <div class="fGroup"><label class="fLabel">พรรค</label>
           <select class="fSel" id="ar-party"><option value="1">พรรคที่ 1</option><option value="2">พรรคที่ 2</option><option value="3">พรรคที่ 3</option></select></div>
         <div class="fGroup"><label class="fLabel">ระดับชั้น</label>
-          <select class="fSel" id="ar-grade"><option>ม.1</option><option>ม.2</option><option>ม.3</option><option>ม.4</option><option>ม.5</option><option>ม.6</option></select></div>
+          <select class="fSel" id="ar-grade"><option>ม1</option><option>ม2</option><option>ม3</option><option>ม4</option><option>ม5</option><option>ม6</option></select></div>
         <div class="fGroup"><label class="fLabel">ชื่อ-นามสกุล</label><input class="fInput" id="ar-name" placeholder="ชื่อผู้แทน"></div>
         <div class="fGroup"><label class="fLabel">ห้องเรียน</label><input class="fInput" id="ar-class" placeholder="เช่น ม.1/2"></div>
       </div>
@@ -510,7 +510,12 @@ const PARTIES=[
   {id:2,name:'พัฒนา',  color:'#06b6d4',fc:'f2',tc:'n2',tagCls:'tagP2',edCls:'es2'},
   {id:3,name:'รวมพลัง',color:'#f59e0b',fc:'f3',tc:'n3',tagCls:'tagP3',edCls:'es3'},
 ];
-const GRADES=['ม.1','ม.2','ม.3','ม.4','ม.5','ม.6'];
+const GRADES=['ม1','ม2','ม3','ม4','ม5','ม6'];
+
+// Convert internal grade key (ม1) to display label (ม.1)
+function gradeDisplay(g){ return g.replace(/^ม(\d)$/,'ม.$1'); }
+// Convert display label back to key
+function gradeKey(g){ return g.replace(/^ม\.(\d)$/,'ม$1'); }
 
 
 // ════════════════════════════════════════════
@@ -564,7 +569,7 @@ function mkDefaultData(){
   GRADES.forEach(g=>{
     reps[g]=PARTIES.map(p=>({
       id:`r${g}p${p.id}`,partyId:p.id,grade:g,
-      name:`ผู้แทน${g} พรรค${p.name}`,class:`${g}/1`,votes:0
+      name:`ผู้แทน${gradeDisplay(g)} พรรค${p.name}`,class:`${g}/1`,votes:0
     }));
   });
   return {presidents,reps,partyNames:['ก้าวหน้า','พัฒนา','รวมพลัง'],schoolName:'โรงเรียนสาธิตแห่งประเทศไทย'};
@@ -779,7 +784,7 @@ function renderB1(){
         <thead><tr><th>ผู้สมัคร</th><th>คะแนนรวม</th><th>%</th><th>เพิ่ม/ลดคะแนน</th></tr></thead>
         <tbody>${p.cands.map(c=>{
           const pct=total>0?((c.votes/total)*100).toFixed(1):'0.0';
-          const gradeOpts=GRADES.map(g=>`<option value="${g}">${g}(${c.vbg[g]})</option>`).join('');
+          const gradeOpts=GRADES.map(g=>`<option value="${g}">${gradeDisplay(g)}(${c.vbg[g]})</option>`).join('');
           return `<tr>
             <td><div style="font-weight:600">${c.name}</div><div style="font-size:.78em;color:var(--mu)">${c.class}</div></td>
             <td><span class="scoreNum" id="sv-${c.id}" style="color:${p.color}">${c.votes}</span></td>
@@ -822,7 +827,7 @@ function subVoteP(cid){
 // ================================================================
 function renderB2(){
   document.getElementById('b2Tabs').innerHTML=GRADES.map(g=>
-    `<div class="tab ${g===activeB2Grade?'on':''}" onclick="switchB2('${g}')">${g}</div>`).join('');
+    `<div class="tab ${g===activeB2Grade?'on':''}" onclick="switchB2('${gradeDisplay(g)}')">${gradeDisplay(g)}</div>`).join('');
   renderB2Panel();
 }
 function switchB2(g){activeB2Grade=g;renderB2();}
@@ -865,7 +870,7 @@ function addVoteR(rid){
   if(!rep)return;
   const amt=parseInt(document.getElementById('ri-'+rid).value)||1;
   rep.votes+=amt;
-  addLog('add',`+${amt} ผู้แทน${g}: ${rep.name} พรรค${party(rep.partyId).name}`);
+  addLog('add',`+${amt} ผู้แทน${gradeDisplay(g)}: ${rep.name} พรรค${party(rep.partyId).name}`);
   save();renderB2Panel();renderDash();
   notify('✅',`+${amt} → ${rep.name}`,'green');
 }
@@ -876,7 +881,7 @@ function subVoteR(rid){
   const amt=parseInt(document.getElementById('ri-'+rid).value)||1;
   if(rep.votes<amt){notify('⚠️','คะแนนไม่เพียงพอ','gold');return;}
   rep.votes-=amt;
-  addLog('sub',`-${amt} ผู้แทน${g}: ${rep.name}`);
+  addLog('sub',`-${amt} ผู้แทน${gradeDisplay(g)}: ${rep.name}`);
   save();renderB2Panel();renderDash();
   notify('🔴',`-${amt} → ${rep.name}`,'red');
 }
@@ -900,7 +905,7 @@ function renderCands(){
 
   // Rep editor tabs
   document.getElementById('repEdTabs').innerHTML=GRADES.map(g=>
-    `<div class="tab ${g===activeRepEdGrade?'on':''}" onclick="switchRepEd('${g}')">${g}</div>`).join('');
+    `<div class="tab ${g===activeRepEdGrade?'on':''}" onclick="switchRepEd('${gradeDisplay(g)}')">${gradeDisplay(g)}</div>`).join('');
   renderRepEdPanel();
 }
 function switchRepEd(g){activeRepEdGrade=g;renderCands();}
@@ -1223,7 +1228,7 @@ function renderDisplay(){
           <div style="margin-bottom:20px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden">
             <div style="padding:12px 18px;background:rgba(251,191,36,.06);border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px">
               <span class="tag tag2">${g}</span>
-              <strong>ผู้แทนนักเรียนชั้น ${g}</strong>
+              <strong>ผู้แทนนักเรียนชั้น ${gradeDisplay(g)}</strong>
               <span style="margin-left:auto;color:var(--mu);font-size:.82em">${totalG} คะแนน</span>
             </div>
             <div style="padding:12px 18px">

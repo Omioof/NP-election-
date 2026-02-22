@@ -338,6 +338,10 @@ body::after{
   .total-cell:last-child{border-bottom:none}
 }
 </style>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -406,6 +410,36 @@ const PARTIES=[
 ];
 const GRADES=['ม.1','ม.2','ม.3','ม.4','ม.5','ม.6'];
 
+
+// ════════════════════════════════════════════
+// FIREBASE CONFIG — ใช้ค่าเดียวกับหน้า Admin
+// ════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCZYFlvhNAye13BewwBQd7rpOOsAbqFptk",
+  authDomain: "election-system-2569.firebaseapp.com",
+  databaseURL: "https://election-system-2569-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "election-system-2569",
+  storageBucket: "election-system-2569.firebasestorage.app",
+  messagingSenderId: "907237388346",
+  appId: "1:907237388346:web:8f4974472336cfd3df8503",
+};
+
+let db = null;
+let dbRef = null;
+
+try {
+  if (!firebase.apps.length) {
+    firebase.initializeApp(FIREBASE_CONFIG);
+  }
+  db = firebase.database();
+  dbRef = db.ref('electionData');
+  console.log('✅ Firebase initialized (public view)');
+} catch(e) {
+  console.error('❌ Firebase init failed:', e);
+}
+
+
+
 // ════════════════════════════════════════════
 // CLOCK
 // ════════════════════════════════════════════
@@ -420,12 +454,35 @@ setInterval(tick,1000);tick();
 // DATA
 // ════════════════════════════════════════════
 let prevPres={};
+let liveData = null;
+
 function loadData(){
+  // Return cached live data from Firebase listener
+  if(liveData) return liveData;
+  // Fallback to localStorage
   try{
     const raw=localStorage.getItem('elV3');
     if(raw)return JSON.parse(raw);
   }catch(e){}
   return null;
+}
+
+// Listen to Firebase in real-time
+function listenFirebase(){
+  if(!dbRef){
+    console.warn('Firebase not available, falling back to localStorage polling');
+    return;
+  }
+  dbRef.on('value', snapshot=>{
+    const val = snapshot.val();
+    if(val){
+      liveData = val;
+      refresh();
+      console.log('🔄 Live data updated from Firebase');
+    }
+  }, err=>{
+    console.error('Firebase listen error:', err);
+  });
 }
 
 function p(id){return PARTIES[id-1]}
@@ -570,15 +627,16 @@ function refresh(){
     return;
   }
   document.getElementById('schoolName').textContent='ผลการเลือกตั้งนักเรียน';
-  document.getElementById('schoolSub').textContent=('โรงเรียนนาคประสิทธิ์ มูลนิธิวัดบางช้างเหนือ')+' · ปีการศึกษา 2569';
+  document.getElementById('schoolSub').textContent=(d.schoolName||'โรงเรียนสาธิต')+' · ปีการศึกษา 2568';
   renderLegend(d.partyNames);
   renderB1(d.presidents,d.partyNames);
   renderB2(d.reps,d.partyNames);
   document.getElementById('lastUpdate').textContent=new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 }
 
+listenFirebase();
 refresh();
-setInterval(refresh,3000);
+// No need for setInterval — Firebase listener updates in real-time!
 </script>
 </body>
 </html>

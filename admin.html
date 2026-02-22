@@ -250,6 +250,10 @@ body::before{content:'';position:fixed;inset:0;
 .del-box p{font-size:.88em;color:var(--mu);margin-bottom:22px;line-height:1.5}
 .del-actions{display:flex;gap:10px;justify-content:flex-end}
 </style>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 </head>
 <body>
 
@@ -507,6 +511,40 @@ const PARTIES=[
   {id:3,name:'รวมพลัง',color:'#f59e0b',fc:'f3',tc:'n3',tagCls:'tagP3',edCls:'es3'},
 ];
 const GRADES=['ม.1','ม.2','ม.3','ม.4','ม.5','ม.6'];
+
+
+// ════════════════════════════════════════════
+// FIREBASE CONFIG — แก้ไขค่าเหล่านี้ให้ตรงกับ Firebase project ของคุณ
+// ════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCZYFlvhNAye13BewwBQd7rpOOsAbqFptk",
+  authDomain: "election-system-2569.firebaseapp.com",
+  databaseURL: "https://election-system-2569-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "election-system-2569",
+  storageBucket: "election-system-2569.firebasestorage.app",
+  messagingSenderId: "907237388346",
+  appId: "1:907237388346:web:8f4974472336cfd3df8503",
+};
+
+// ⚠️ อย่าลืมเปลี่ยนค่าข้างบนให้ตรงกับ project ของคุณ!
+// วิธีหา config: Firebase Console → Project Settings → Your apps → Config
+
+let db = null;
+let dbRef = null;
+
+try {
+  if (!firebase.apps.length) {
+    firebase.initializeApp(FIREBASE_CONFIG);
+  }
+  db = firebase.database();
+  dbRef = db.ref('electionData');
+  console.log('✅ Firebase initialized');
+} catch(e) {
+  console.error('❌ Firebase init failed:', e);
+  alert('ไม่สามารถเชื่อมต่อ Firebase ได้\nกรุณาตรวจสอบ FIREBASE_CONFIG ในโค้ด');
+}
+
+
 const USERS={admin:'admin123',teacher:'school2568'};
 
 // ================================================================
@@ -532,12 +570,68 @@ function mkDefaultData(){
   return {presidents,reps,partyNames:['ก้าวหน้า','พัฒนา','รวมพลัง'],schoolName:'โรงเรียนสาธิตแห่งประเทศไทย'};
 }
 
-function load(){try{const r=localStorage.getItem('elV3');if(r)return JSON.parse(r);}catch(e){}return mkDefaultData();}
-function save(){localStorage.setItem('elV3',JSON.stringify(data));}
+// Firebase-backed load/save
+function load(){
+  // Initial load from localStorage (fallback)
+  try{
+    const r=localStorage.getItem('elV3');
+    if(r)return JSON.parse(r);
+  }catch(e){}
+  return mkDefaultData();
+}
+
+function save(){
+  if(!dbRef){
+    console.warn('Firebase not ready, using localStorage');
+    localStorage.setItem('elV3',JSON.stringify(data));
+    return;
+  }
+  // Save to Firebase
+  dbRef.set(data).then(()=>{
+    console.log('✅ Saved to Firebase');
+  }).catch(err=>{
+    console.error('❌ Firebase save error:',err);
+    // Fallback to localStorage
+    localStorage.setItem('elV3',JSON.stringify(data));
+  });
+}
+
+// Listen for Firebase changes (other admins updating)
+function listenFirebase(){
+  if(!dbRef)return;
+  dbRef.on('value', snapshot=>{
+    const val = snapshot.val();
+    if(val && currentUser){
+      data = val;
+      applyPartyConfig();
+      // Only re-render if not currently on settings page (avoid input conflict)
+      const activePage = document.querySelector('.page.on');
+      if(activePage && activePage.id !== 'page-settings'){
+        renderAll();
+      }
+      console.log('🔄 Data synced from Firebase');
+    }
+  }, err=>{
+    console.error('Firebase listen error:',err);
+  });
+}
 
 let data=load();
 applyPartyConfig=function(){if(data.partyNames)data.partyNames.forEach((n,i)=>{if(PARTIES[i])PARTIES[i].name=n;});if(data.partyColors)data.partyColors.forEach((c,i)=>{if(PARTIES[i])PARTIES[i].color=c;});};
-let log=[];try{log=JSON.parse(localStorage.getItem('elLogV3')||'[]');}catch(e){}
+let log=[];
+let logRef = null;
+try{
+  log=JSON.parse(localStorage.getItem('elLogV3')||'[]');
+  if(db){
+    logRef = db.ref('electionLog');
+    logRef.limitToLast(100).once('value').then(snap=>{
+      if(snap.val()){
+        log = Object.values(snap.val());
+        console.log('📜 Log loaded from Firebase');
+      }
+    });
+  }
+}catch(e){}
 function saveLog(){localStorage.setItem('elLogV3',JSON.stringify(log.slice(0,120)));}
 
 let currentUser='';
@@ -560,6 +654,7 @@ function doLogin(e){
     document.getElementById('sbAva').textContent=u[0].toUpperCase();
     addLog('info',`เข้าสู่ระบบ: ${u}`);
     applyPartyConfig();
+    listenFirebase();
     renderAll();
     notify('✅',`ยินดีต้อนรับ ${u}`,'green');
   } else {

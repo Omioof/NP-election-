@@ -522,13 +522,13 @@ function gradeKey(g){ return g.replace(/^ม\.(\d)$/,'ม$1'); }
 // FIREBASE CONFIG — แก้ไขค่าเหล่านี้ให้ตรงกับ Firebase project ของคุณ
 // ════════════════════════════════════════════
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyCZYFlvhNAye13BewwBQd7rpOOsAbqFptk",
-  authDomain: "election-system-2569.firebaseapp.com",
-  databaseURL: "https://election-system-2569-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "election-system-2569",
-  storageBucket: "election-system-2569.firebasestorage.app",
-  messagingSenderId: "907237388346",
-  appId: "1:907237388346:web:8f4974472336cfd3df8503",
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT.firebaseio.com",
+  projectId: "YOUR_PROJECT",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
 };
 
 // ⚠️ อย่าลืมเปลี่ยนค่าข้างบนให้ตรงกับ project ของคุณ!
@@ -576,11 +576,71 @@ function mkDefaultData(){
 }
 
 // Firebase-backed load/save
+
+// ════════════════════════════════════════════
+// DATA MIGRATION — แปลง key เก่า "ม.1" → "ม1"
+// ════════════════════════════════════════════
+function migrateData(d) {
+  if(!d) return d;
+  
+  // Migrate presidents votesByGrade keys
+  if(d.presidents && Array.isArray(d.presidents)) {
+    d.presidents.forEach(p => {
+      if(p.vbg) {
+        const newVbg = {};
+        Object.keys(p.vbg).forEach(k => {
+          // Convert "ม.1" → "ม1"
+          const newKey = k.replace(/^ม\./, 'ม');
+          newVbg[newKey] = p.vbg[k];
+        });
+        p.vbg = newVbg;
+      }
+    });
+  }
+  
+  // Migrate reps object keys
+  if(d.reps && typeof d.reps === 'object') {
+    const newReps = {};
+    Object.keys(d.reps).forEach(k => {
+      // Convert "ม.1" → "ม1"
+      const newKey = k.replace(/^ม\./, 'ม');
+      newReps[newKey] = d.reps[k];
+      // Also update grade field inside each rep
+      if(Array.isArray(newReps[newKey])) {
+        newReps[newKey].forEach(r => {
+          if(r.grade) r.grade = r.grade.replace(/^ม\./, 'ม');
+        });
+      }
+    });
+    d.reps = newReps;
+  }
+  
+  // Ensure all grades exist with new keys
+  if(d.reps) {
+    GRADES.forEach(g => {
+      if(!d.reps[g]) {
+        d.reps[g] = PARTIES.map(p=>({
+          id:'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,8),
+          partyId:p.id, grade:g,
+          name:`ผู้แทน${gradeDisplay(g)} พรรค${p.name}`,
+          class:`${gradeDisplay(g)}/1`, votes:0
+        }));
+      }
+    });
+  }
+  
+  return d;
+}
+
+
 function load(){
   // Initial load from localStorage (fallback)
   try{
     const r=localStorage.getItem('elV3');
-    if(r)return JSON.parse(r);
+    if(r) {
+      const parsed = JSON.parse(r);
+      return migrateData(parsed); // Migrate old keys
+    }
   }catch(e){}
   return mkDefaultData();
 }
@@ -607,7 +667,7 @@ function listenFirebase(){
   dbRef.on('value', snapshot=>{
     const val = snapshot.val();
     if(val && currentUser){
-      data = val;
+      data = migrateData(val); // Migrate old keys
       applyPartyConfig();
       // Only re-render if not currently on settings page (avoid input conflict)
       const activePage = document.querySelector('.page.on');
@@ -714,9 +774,9 @@ function go(id){
 function uid(){return 'x'+Date.now().toString(36)+Math.random().toString(36).replace(/[^a-z0-9]/g,'').slice(2,8);}
 function party(id){return PARTIES[id-1];}
 function presTotal(){return data.presidents.reduce((s,p)=>s+p.votes,0);}
-function repTotal(){return GRADES.reduce((s,g)=>s+data.reps[g].reduce((a,r)=>a+r.votes,0),0);}
+function repTotal(){return GRADES.reduce((s,g)=>{const arr=data.reps[g]; return s+(arr?arr.reduce((a,r)=>a+r.votes,0):0);},0);}
 function partyPresVotes(pid){return data.presidents.filter(p=>p.partyId===pid).reduce((s,p)=>s+p.votes,0);}
-function partyRepVotes(pid){return GRADES.reduce((s,g)=>s+data.reps[g].filter(r=>r.partyId===pid).reduce((a,r)=>a+r.votes,0),0);}
+function partyRepVotes(pid){return GRADES.reduce((s,g)=>{const arr=data.reps[g]; return s+(arr?arr.filter(r=>r.partyId===pid).reduce((a,r)=>a+r.votes,0):0);},0);}
 function fmtTime(){return new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
 
 // ================================================================

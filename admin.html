@@ -522,13 +522,13 @@ function gradeKey(g){ return g.replace(/^ม\.(\d)$/,'ม$1'); }
 // FIREBASE CONFIG — แก้ไขค่าเหล่านี้ให้ตรงกับ Firebase project ของคุณ
 // ════════════════════════════════════════════
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyCZYFlvhNAye13BewwBQd7rpOOsAbqFptk",
-  authDomain: "election-system-2569.firebaseapp.com",
-  databaseURL: "https://election-system-2569-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "election-system-2569",
-  storageBucket: "election-system-2569.firebasestorage.app",
-  messagingSenderId: "907237388346",
-  appId: "1:907237388346:web:8f4974472336cfd3df8503",
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT.firebaseio.com",
+  projectId: "YOUR_PROJECT",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
 };
 
 // ⚠️ อย่าลืมเปลี่ยนค่าข้างบนให้ตรงกับ project ของคุณ!
@@ -581,15 +581,39 @@ function mkDefaultData(){
 // DATA MIGRATION — แปลง key เก่า "ม.1" → "ม1"
 // ════════════════════════════════════════════
 function migrateData(d) {
-  if(!d) return d;
+  if(!d) return mkDefaultData(); // Return fresh data if null
   
-  // Migrate presidents votesByGrade keys
+  // Check if data has old format — if so, reset
+  let hasOldFormat = false;
+  
+  if(d.reps && typeof d.reps === 'object') {
+    if(d.reps['ม.1'] || d.reps['ม.2']) {
+      console.warn('⚠️  Detected old grade format — migrating...');
+      hasOldFormat = true;
+    }
+  }
+  
+  if(d.presidents && Array.isArray(d.presidents)) {
+    d.presidents.forEach(p => {
+      if(p.vbg && (p.vbg['ม.1'] || p.vbg['ม.2'])) {
+        hasOldFormat = true;
+      }
+    });
+  }
+  
+  // If old format detected, start fresh to avoid errors
+  if(hasOldFormat) {
+    console.warn('🗑️  Old data format detected — resetting to avoid errors');
+    alert('ระบบตรวจพบข้อมูลเก่าที่ไม่รองรับ\nจะรีเซ็ตข้อมูลให้อัตโนมัติ\n(ข้อมูลคะแนนจะหายไป)');
+    return mkDefaultData();
+  }
+  
+  // Migrate presidents votesByGrade keys (just in case)
   if(d.presidents && Array.isArray(d.presidents)) {
     d.presidents.forEach(p => {
       if(p.vbg) {
         const newVbg = {};
         Object.keys(p.vbg).forEach(k => {
-          // Convert "ม.1" → "ม1"
           const newKey = k.replace(/^ม\./, 'ม');
           newVbg[newKey] = p.vbg[k];
         });
@@ -602,10 +626,8 @@ function migrateData(d) {
   if(d.reps && typeof d.reps === 'object') {
     const newReps = {};
     Object.keys(d.reps).forEach(k => {
-      // Convert "ม.1" → "ม1"
       const newKey = k.replace(/^ม\./, 'ม');
       newReps[newKey] = d.reps[k];
-      // Also update grade field inside each rep
       if(Array.isArray(newReps[newKey])) {
         newReps[newKey].forEach(r => {
           if(r.grade) r.grade = r.grade.replace(/^ม\./, 'ม');
@@ -639,9 +661,17 @@ function load(){
     const r=localStorage.getItem('elV3');
     if(r) {
       const parsed = JSON.parse(r);
-      return migrateData(parsed); // Migrate old keys
+      const migrated = migrateData(parsed);
+      // Validate migrated data
+      if(!migrated.reps || !migrated.presidents){
+        console.error('❌ Invalid data structure after migration');
+        return mkDefaultData();
+      }
+      return migrated;
     }
-  }catch(e){}
+  }catch(e){
+    console.error('❌ Load error:', e);
+  }
   return mkDefaultData();
 }
 
@@ -892,7 +922,8 @@ function renderB2(){
 }
 function switchB2(g){activeB2Grade=g;renderB2();}
 function renderB2Panel(){
-  const reps=data.reps[activeB2Grade];
+  const reps=data.reps[activeB2Grade] || [];
+  if(!reps.length){ document.getElementById('b2Content').innerHTML='<p style="color:var(--mu);padding:20px">ไม่มีข้อมูลผู้แทนชั้น '+gradeDisplay(activeB2Grade)+'</p>'; return; }
   const maxV=Math.max(...reps.map(r=>r.votes),1);
   const total=reps.reduce((s,r)=>s+r.votes,0);
   const byParty=PARTIES.map(p=>({...p,reps:reps.filter(r=>r.partyId===p.id)}));
@@ -970,7 +1001,8 @@ function renderCands(){
 }
 function switchRepEd(g){activeRepEdGrade=g;renderCands();}
 function renderRepEdPanel(){
-  const reps=data.reps[activeRepEdGrade];
+  const reps=data.reps[activeRepEdGrade] || [];
+  if(!reps.length){ document.getElementById('repEdGrid').innerHTML='<p style="color:var(--mu);padding:20px">ไม่มีข้อมูลผู้แทนชั้น '+gradeDisplay(activeRepEdGrade)+'</p>'; return; }
   document.getElementById('repEdGrid').innerHTML=reps.map(r=>{
     const p=party(r.partyId);
     return `<div class="edCard">
